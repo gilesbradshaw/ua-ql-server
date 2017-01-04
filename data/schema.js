@@ -18,6 +18,44 @@ type Post {
 }
 
 
+type ArgumentValueType {
+  index: Int
+  dataType: String
+  arrayType: String
+  value: TypedArgumentValue
+}
+
+enum BrowseDirectionEnum {
+  Invalid
+  Forward
+  Inverse
+  Both
+}
+
+union TypedArgumentValue = BooleanArgumentValue | IntArgumentValue | Int64ArgumentValue | FloatArgumentValue | StringArgumentValue
+
+type BooleanArgumentValue {
+  value: Boolean
+}
+
+type FloatArgumentValue {
+  value: Float
+}
+
+type Int64ArgumentValue {
+  value: [Int]
+}
+
+type IntArgumentValue {
+  value: Int
+}
+
+type StringArgumentValue {
+  value: String
+}
+
+
+
 enum NodeClassEnum {
 
   # 0
@@ -70,6 +108,7 @@ type ExpandedNodeId {
   namespace: Int
   namespaceUri: String
   serverIndex: Int
+  uaNode: UaNode
 }
 
 # http://node-opcua.github.io/api_doc/classes/QualifiedName.html
@@ -84,6 +123,9 @@ type StatusCode {
   description: String
   name: String
 }
+
+union TestUnion =  UaNull | UaLong | UaInt | UaFloat | UaIntArray | UaString | UaStringArray
+
 
 # Data type and array type for data values
 interface UaDataValue {
@@ -136,7 +178,27 @@ type UaStringArray implements UaDataValue {
   statusCode: StatusCode
 }
 
-union TestUnion =  UaNull | UaLong | UaInt | UaFloat | UaIntArray | UaString | UaStringArray
+
+
+enum ResultMaskEnum {
+  ReferenceType
+  IsForward
+  NodeClass
+  BrowseName
+  DisplayName
+  TypeDefinition
+}
+
+type UaReference {
+  id: ID!
+  browseName: QualifiedName
+  displayName: LocalizedText
+  isForward: Boolean
+  nodeClass: String
+  nodeId: ExpandedNodeId
+  referenceTypeId: ExpandedNodeId
+  typeDefinition: ExpandedNodeId
+}
 
 type UaNode {
   id: String!
@@ -153,7 +215,30 @@ type UaNode {
   nodeId: ExpandedNodeId
   description: LocalizedText
   dataValue: TestUnion
+  dataType: ExpandedNodeId
+  valueRank: Int
+  arrayDimensions: [Int]
+  accessLevel: Int
+  userAccessLevel: Int
+  minimumSamplingInterval: Float
+  historizing: Boolean
+  executable: Boolean
+  userExecutable: Boolean
+  outputArguments: [ArgumentValueType]
+  #browsePath(paths: [String] = [], types: [String] = [], subTypes: [Boolean] = [], isInverses: [Boolean] = []): UANode
+  references(
+    referenceTypeId: String, 
+    browseDirection: BrowseDirectionEnum, 
+    nodeClasses: [NodeClassEnum], 
+    results: [ResultMaskEnum], 
+    includeSubtypes: Boolean, 
+    last: Int, 
+    before: String, 
+    first: Int, 
+    after: String
+  ): [UaReference]
   self: UaNode
+
 }
 
 

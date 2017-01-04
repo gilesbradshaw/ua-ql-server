@@ -21,8 +21,11 @@ const getAttribute = (nodeId, attributeId) => {
   .flatMap(session =>
     Rx.Observable.bindCallback(
       session.read.bind(session),
-      (err, _nodesToRead, results) =>
-        results && results[0] && results[0].value && results[0].value.value
+      (err, _nodesToRead, results) =>{
+        console.log(results)
+        return results && results[0] && results[0].value && results[0].value.value;
+      }
+        
     )([{ nodeId, attributeId }])
   );
 };
@@ -33,10 +36,41 @@ const getWholeAttribute = (nodeId, attributeId) => {
     Rx.Observable.bindCallback(
       session.read.bind(session),
       (err, _nodesToRead, results) => {
+        console.log(results)
         return results && results[0] && results[0].value;
       }
     )([{ nodeId, attributeId }])
   );
+};
+
+const getReferences = ({ nodeId, args }) => {
+  const {
+    referenceTypeId,
+    browseDirection = 0,
+    nodeClasses = [255],
+    includeSubtypes,
+    results,
+  } = args;
+  const browseDescription = {
+    nodeId,
+    referenceTypeId,
+    browseDirection,
+    includeSubtypes,
+    nodeClassMask: nodeClasses ? nodeClasses.reduce(((p, c)=>p | c), 0) : 0,
+    resultMask: results ? results.reduce(((p, c)=>p | c), 0) : 63,
+  };
+  return nextSession()
+    .take(1)
+    .flatMap(session =>
+      Rx.Observable.bindCallback(
+        session.browse.bind(session),
+        (err, browseResult) => {
+          console.log('refs:', JSON.stringify(browseResult, null, 2), err);
+          // mystifid re nodeClass
+          return browseResult[0].references.map(r=>({ ...r, id: `${nodeId}->${r.referenceTypeId}->${r.nodeId}`, nodeClass: r.nodeClass }))
+        }
+      )(browseDescription)
+    );
 };
 
 const resolveFunctions = {
@@ -118,19 +152,53 @@ const resolveFunctions = {
       }
     },
   },
+  ExpandedNodeId: {
+    uaNode({
+      identifierType,
+      value,
+      namespace,
+      namespaceUri,
+      serverIndex 
+    }) {
+      return { id: `ns=${namespace};i=${value}` };
+    },
+  },
   UaNode: {
-    nodeId(node) { return getAttribute(node.id, opcua.AttributeIds.NodeId).toPromise(); },
-    browseName(node) { return getAttribute(node.id, opcua.AttributeIds.BrowseName).toPromise(); },
-    displayName(node) { return getAttribute(node.id, opcua.AttributeIds.DisplayName).toPromise(); },
-    description(node) { return getAttribute(node.id, opcua.AttributeIds.Description).toPromise(); },
-    writeMask(node) { return getAttribute(node.id, opcua.AttributeIds.WriteMask).toPromise(); },
-    userWriteMask(node) { return getAttribute(node.id, opcua.AttributeIds.UserWriteMask).toPromise(); },
-    isAbstract(node) { return getAttribute(node.id, opcua.AttributeIds.IsAbstract).toPromise(); },
-    symmetric(node) { return getAttribute(node.id, opcua.AttributeIds.Symmetric).toPromise(); },
-    inverseName(node) { return getAttribute(node.id, opcua.AttributeIds.InverseName).toPromise(); },
-    containsNoLoops(node) { return getAttribute(node.id, opcua.AttributeIds.ContainsNoLoops).toPromise(); },
-    eventNotifier(node) { return getAttribute(node.id, opcua.AttributeIds.EventNotifier).toPromise(); },
-    dataValue(node) { return getWholeAttribute(node.id, opcua.AttributeIds.Value).toPromise(); },
+    nodeId({ id }) { return getAttribute(id, opcua.AttributeIds.NodeId).toPromise(); },
+    browseName({ id }) { return getAttribute(id, opcua.AttributeIds.BrowseName).toPromise(); },
+    displayName({ id }) { return getAttribute(id, opcua.AttributeIds.DisplayName).toPromise(); },
+    description({ id }) { return getAttribute(id, opcua.AttributeIds.Description).toPromise(); },
+    writeMask({ id }) { return getAttribute(id, opcua.AttributeIds.WriteMask).toPromise(); },
+    userWriteMask({ id }) { return getAttribute(id, opcua.AttributeIds.UserWriteMask).toPromise(); },
+    isAbstract({ id }) { return getAttribute(id, opcua.AttributeIds.IsAbstract).toPromise(); },
+    symmetric({ id }) { return getAttribute(id, opcua.AttributeIds.Symmetric).toPromise(); },
+    inverseName({ id }) { return getAttribute(id, opcua.AttributeIds.InverseName).toPromise(); },
+    containsNoLoops({ id }) { return getAttribute(id, opcua.AttributeIds.ContainsNoLoops).toPromise(); },
+    eventNotifier({ id }) { return getAttribute(id, opcua.AttributeIds.EventNotifier).toPromise(); },
+    dataValue({ id }) { return getWholeAttribute(id, opcua.AttributeIds.Value).toPromise(); },
+    dataType({ id }) { return getAttribute(id, opcua.AttributeIds.DataType).toPromise(); },
+    valueRank({ id }) { return getAttribute(id, opcua.AttributeIds.ValueRank).toPromise(); },
+    arrayDimensions({ id }) { return getAttribute(id, opcua.AttributeIds.ArrayDimensions).toPromise(); },
+    accessLevel({ id }) { return getAttribute(id, opcua.AttributeIds.AccessLevel).toPromise(); },
+    userAccessLevel({ id }) { return getAttribute(id, opcua.AttributeIds.UserAccessLevel).toPromise(); },
+    minimumSamplingInterval({ id }) { return getAttribute(id, opcua.AttributeIds.MinimumSamplingInterval.ArrayDimensions).toPromise(); },
+    historizing({ id }) { return getAttribute(id, opcua.AttributeIds.Historizing).toPromise(); },
+    executable({ id }) { return getAttribute(id, opcua.AttributeIds.Executable).toPromise(); },
+    userExecutable({ id }) { return getAttribute(id, opcua.AttributeIds.UserExecutable).toPromise(); },
+    outputArguments({ id }) { return getAttribute(id, opcua.AttributeIds.OutputArguments).toPromise(); },
+    references({ id: nodeId }, args) {
+      return getReferences({ nodeId, args }).toPromise();
+    },
+    /*
+    arrayDimensions: getProperty(new GraphQLList(GraphQLInt), opcua.AttributeIds.ArrayDimensions), //16,  IntListResultType
+    accessLevel: getProperty(GraphQLInt, opcua.AttributeIds.AccessLevel), //17,
+    userAccessLevel: getProperty(GraphQLInt, opcua.AttributeIds.UserAccessLevel), //18,
+    minimumSamplingInterval: getProperty(GraphQLFloat, opcua.AttributeIds.MinimumSamplingInterval), //19,
+    historizing: getProperty(GraphQLBoolean, opcua.AttributeIds.Historizing), //20,
+    executable: getProperty(GraphQLBoolean, opcua.AttributeIds.Executable), //21,
+    userExecutable: getProperty(GraphQLBoolean, opcua.AttributeIds.UserExecutable), //22,
+    */
+    //outputArguments: {type: new GraphQLList(ArgumentValueType)},
     nodeClass(node) {
       return getAttribute(node.id, opcua.AttributeIds.NodeClass)
         .map((c) => {

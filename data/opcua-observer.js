@@ -3,7 +3,7 @@ import Rx from 'rxjs';
 import { opcua, nextSession, handleError } from './opcua';
 
 
-const opcuaObserver = ({ nodeId, attributeId = opcua.AttributeIds.Value })=>
+const opcuaObserver = ({ nodeId, attributeId = opcua.AttributeIds.Value }) =>
   nextSession().map(session =>
     new opcua.ClientSubscription(session, {
       requestedPublishingInterval: 1000,

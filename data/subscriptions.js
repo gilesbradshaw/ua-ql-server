@@ -1,6 +1,7 @@
 import { PubSub, SubscriptionManager } from 'graphql-subscriptions';
 import schema from './schema';
 import opcObserver from './opcua-observer';
+import { opcua } from './opcua';
 
 
 const valueSubscriptions = {};
@@ -12,17 +13,24 @@ const valueSubscriptionIds = {};
 
 class MyPubSub extends PubSub {
 
-  subscribe(trigger, onMessage, channelOptions, variables) {
+  subscribe(
+    trigger,
+    onMessage,
+    channelOptions,
+    { id: nodeId, attributeId = opcua.AttributeIds.Value } = {}
+  ) {
+    valueSubscriptionCounters[attributeId] = valueSubscriptionCounters[attributeId] || {};
+    valueSubscriptions[attributeId] = valueSubscriptions[attributeId] || {};
+
     const ret = super.subscribe(trigger, onMessage);
-    console.log('subscribed to:', trigger, variables, variables && valueSubscriptionCounters[variables.id]);
+    console.log('subscribed to:', trigger, nodeId, nodeId && valueSubscriptionCounters[attributeId][nodeId]);
     if (trigger === 'value') {
-      valueSubscriptionCounters[variables.id] = (valueSubscriptionCounters[variables.id] || 0) + 1;
+      valueSubscriptionCounters[attributeId][nodeId] = (valueSubscriptionCounters[attributeId][nodeId] || 0) + 1;
       return new Promise((resolve) => {
         ret.then((f) => {
-          const nodeId = variables.id;
-          valueSubscriptionIds[f] = nodeId;
-          if (valueSubscriptionCounters[nodeId] === 1) {
-            valueSubscriptions[nodeId] = opcObserver({ nodeId }).subscribe((v) => {
+          valueSubscriptionIds[f] = { nodeId, attributeId };
+          if (valueSubscriptionCounters[attributeId][nodeId] === 1) {
+            valueSubscriptions[attributeId][nodeId] = opcObserver({ nodeId, attributeId }).subscribe((v) => {
               resolve(f);
               this.publish('value', v);
             });
@@ -35,17 +43,19 @@ class MyPubSub extends PubSub {
     return ret;
   }
   unsubscribe(subid) {
-    const nodeId = valueSubscriptionIds[subid];
-    delete valueSubscriptionIds[subid];
-    if (nodeId) {
-      valueSubscriptionCounters[nodeId] -= 1;
-      if (!valueSubscriptionCounters[nodeId]) {
-        console.log('unsubscribing fully from:', nodeId);
-        valueSubscriptions[nodeId].unsubscribe();
-        delete valueSubscriptions[nodeId];
-        delete valueSubscriptionCounters[nodeId];
-      } else {
-        console.log('unsubscribing from:', nodeId);
+    if (valueSubscriptionIds[subid]) {
+      const { nodeId, attributeId } = valueSubscriptionIds[subid];
+      delete valueSubscriptionIds[subid];
+      if (nodeId) {
+        valueSubscriptionCounters[attributeId][nodeId] -= 1;
+        if (!valueSubscriptionCounters[attributeId][nodeId]) {
+          console.log('unsubscribing fully from:', { nodeId, attributeId });
+          valueSubscriptions[attributeId][nodeId].unsubscribe();
+          delete valueSubscriptions[attributeId][nodeId];
+          delete valueSubscriptionCounters[attributeId][nodeId];
+        } else {
+          console.log('unsubscribing from:', { nodeId, attributeId });
+        }
       }
     }
     return super.unsubscribe(subid);
