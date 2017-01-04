@@ -17,14 +17,17 @@ class MyPubSub extends PubSub {
     trigger,
     onMessage,
     channelOptions,
-    { id: nodeId, attributeId = opcua.AttributeIds.Value } = {}
+    args
   ) {
-    valueSubscriptionCounters[attributeId] = valueSubscriptionCounters[attributeId] || {};
-    valueSubscriptions[attributeId] = valueSubscriptions[attributeId] || {};
-
+    console.log('subscribing', args);
+    
     const ret = super.subscribe(trigger, onMessage);
-    console.log('subscribed to:', trigger, nodeId, nodeId && valueSubscriptionCounters[attributeId][nodeId]);
-    if (trigger === 'value') {
+    if (trigger === 'value' && args) {
+      console.log('subscribed to:', trigger, nodeId, nodeId && valueSubscriptionCounters[attributeId][nodeId]);
+      const { id: nodeId, attributeId = opcua.AttributeIds.Value } = args;
+      valueSubscriptionCounters[attributeId] = valueSubscriptionCounters[attributeId] || {};
+      valueSubscriptions[attributeId] = valueSubscriptions[attributeId] || {};
+
       valueSubscriptionCounters[attributeId][nodeId] = (valueSubscriptionCounters[attributeId][nodeId] || 0) + 1;
       return new Promise((resolve) => {
         ret.then((f) => {

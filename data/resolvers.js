@@ -3,6 +3,8 @@ import Rx from 'rxjs';
 import { pubsub } from './subscriptions';
 import { opcua, nextSession, handleError } from './opcua';
 import opcObserver from './opcua-observer';
+import CustomGraphQLDateType from 'graphql-custom-datetype';
+
 
 const authors = [
   { id: 1, firstName: 'Tom', lastName: 'Coleman' },
@@ -22,7 +24,6 @@ const getAttribute = (nodeId, attributeId) => {
     Rx.Observable.bindCallback(
       session.read.bind(session),
       (err, _nodesToRead, results) =>{
-        console.log(results)
         return results && results[0] && results[0].value && results[0].value.value;
       }
         
@@ -36,13 +37,17 @@ const getWholeAttribute = (nodeId, attributeId) => {
     Rx.Observable.bindCallback(
       session.read.bind(session),
       (err, _nodesToRead, results) => {
-        console.log(results)
-        return results && results[0] && results[0].value;
+        if (err) throw (err);
+        const v = results && results[0];
+        return v;
       }
     )([{ nodeId, attributeId }])
   );
 };
 
+const get = name=> ({ id }) =>
+      getWholeAttribute(id, opcua.AttributeIds[name])
+        .map(v => ({ ...v, value: v.value && v.value.value })).toPromise();
 const getReferences = ({ nodeId, args }) => {
   const {
     referenceTypeId,
@@ -65,9 +70,12 @@ const getReferences = ({ nodeId, args }) => {
       Rx.Observable.bindCallback(
         session.browse.bind(session),
         (err, browseResult) => {
-          console.log('refs:', JSON.stringify(browseResult, null, 2), err);
           // mystifid re nodeClass
-          return browseResult[0].references.map(r=>({ ...r, id: `${nodeId}->${r.referenceTypeId}->${r.nodeId}`, nodeClass: r.nodeClass }))
+          return { 
+            ...browseResult[0], 
+            references: browseResult[0].references
+              .map(r=>({ ...r, id: `${nodeId}->${r.referenceTypeId}->${r.nodeId}`, nodeClass: r.nodeClass }))
+          };
         }
       )(browseDescription)
     );
@@ -119,8 +127,9 @@ const resolveFunctions = {
       }
     },
   },
-  TestUnion: {
-    __resolveType(obj, context, info){
+  CustomGraphQLDateType,
+  TestUnion: {   
+    __resolveType(obj, context, info) {
       const { $dataType: { key: dKey }, $arrayType: { key: aKey }} = obj
       switch (aKey) {
         case 'Scalar':
@@ -164,27 +173,27 @@ const resolveFunctions = {
     },
   },
   UaNode: {
-    nodeId({ id }) { return getAttribute(id, opcua.AttributeIds.NodeId).toPromise(); },
-    browseName({ id }) { return getAttribute(id, opcua.AttributeIds.BrowseName).toPromise(); },
-    displayName({ id }) { return getAttribute(id, opcua.AttributeIds.DisplayName).toPromise(); },
-    description({ id }) { return getAttribute(id, opcua.AttributeIds.Description).toPromise(); },
-    writeMask({ id }) { return getAttribute(id, opcua.AttributeIds.WriteMask).toPromise(); },
-    userWriteMask({ id }) { return getAttribute(id, opcua.AttributeIds.UserWriteMask).toPromise(); },
-    isAbstract({ id }) { return getAttribute(id, opcua.AttributeIds.IsAbstract).toPromise(); },
-    symmetric({ id }) { return getAttribute(id, opcua.AttributeIds.Symmetric).toPromise(); },
-    inverseName({ id }) { return getAttribute(id, opcua.AttributeIds.InverseName).toPromise(); },
-    containsNoLoops({ id }) { return getAttribute(id, opcua.AttributeIds.ContainsNoLoops).toPromise(); },
-    eventNotifier({ id }) { return getAttribute(id, opcua.AttributeIds.EventNotifier).toPromise(); },
+    nodeId: get('NodeId'),
+    browseName: get('BrowseName'),
+    displayName: get('DisplayName'),
+    description: get('Description'),
+    writeMask: get('WriteMask'),
+    userWriteMask: get('UserWriteMask'),
+    isAbstract: get('IsAbstract'),
+    symmetric: get('Symmetric'),
+    inverseName: get('InverseName'),
+    containsNoLoops: get('ContainsNoLoops'),
+    eventNotifier: get('EventNotifier'),
     dataValue({ id }) { return getWholeAttribute(id, opcua.AttributeIds.Value).toPromise(); },
-    dataType({ id }) { return getAttribute(id, opcua.AttributeIds.DataType).toPromise(); },
-    valueRank({ id }) { return getAttribute(id, opcua.AttributeIds.ValueRank).toPromise(); },
+    dataType: get('DataType'),
+    valueRank: get('ValueRank'),
     arrayDimensions({ id }) { return getAttribute(id, opcua.AttributeIds.ArrayDimensions).toPromise(); },
-    accessLevel({ id }) { return getAttribute(id, opcua.AttributeIds.AccessLevel).toPromise(); },
-    userAccessLevel({ id }) { return getAttribute(id, opcua.AttributeIds.UserAccessLevel).toPromise(); },
-    minimumSamplingInterval({ id }) { return getAttribute(id, opcua.AttributeIds.MinimumSamplingInterval.ArrayDimensions).toPromise(); },
-    historizing({ id }) { return getAttribute(id, opcua.AttributeIds.Historizing).toPromise(); },
-    executable({ id }) { return getAttribute(id, opcua.AttributeIds.Executable).toPromise(); },
-    userExecutable({ id }) { return getAttribute(id, opcua.AttributeIds.UserExecutable).toPromise(); },
+    accessLevel: get('AccessLevel'),
+    userAccessLevel: get('UserAccessLevel'),
+    minimumSamplingInterval: get('MnimumSamplingInterval'),
+    historizing: get('Historizing'),
+    executable: get('Executable'),
+    userExecutable: get('UserExecutable:'),
     outputArguments({ id }) { return getAttribute(id, opcua.AttributeIds.OutputArguments).toPromise(); },
     references({ id: nodeId }, args) {
       return getReferences({ nodeId, args }).toPromise();

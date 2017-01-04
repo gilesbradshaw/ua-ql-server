@@ -1,5 +1,6 @@
 import { makeExecutableSchema } from 'graphql-tools';
 
+
 import resolvers from './resolvers';
 
 const schema = `
@@ -17,6 +18,7 @@ type Post {
   votes: Int
 }
 
+scalar CustomGraphQLDateType
 
 type ArgumentValueType {
   index: Int
@@ -111,6 +113,7 @@ type ExpandedNodeId {
   uaNode: UaNode
 }
 
+
 # http://node-opcua.github.io/api_doc/classes/QualifiedName.html
 type QualifiedName {
     namespaceIndex: Int
@@ -119,9 +122,77 @@ type QualifiedName {
 
 # http://node-opcua.github.io/api_doc/classes/StatusCode.html
 type StatusCode {
-  value: Int
+  value: Float
   description: String
   name: String
+}
+
+
+interface IValue {
+  statusCode: StatusCode
+  sourceTimestamp: CustomGraphQLDateType
+  sourcePicoseconds: Int
+  serverTimestamp: CustomGraphQLDateType
+  serverPicoseconds: Int
+}
+
+type DataValue implements IValue {
+  value: TestUnion
+  statusCode: StatusCode
+  sourceTimestamp: CustomGraphQLDateType
+  sourcePicoseconds: Int
+  serverTimestamp: CustomGraphQLDateType
+  serverPicoseconds: Int
+}
+
+type BrowseName implements IValue {
+  value: QualifiedName
+  statusCode: StatusCode
+  sourceTimestamp: CustomGraphQLDateType
+  sourcePicoseconds: Int
+  serverTimestamp: CustomGraphQLDateType
+  serverPicoseconds: Int
+}
+type DisplayName implements IValue {
+  value: LocalizedText
+  statusCode: StatusCode
+  sourceTimestamp: CustomGraphQLDateType
+  sourcePicoseconds: Int
+  serverTimestamp: CustomGraphQLDateType
+  serverPicoseconds: Int
+}
+type IntValue implements IValue {
+  value: Int
+  statusCode: StatusCode
+  sourceTimestamp: CustomGraphQLDateType
+  sourcePicoseconds: Int
+  serverTimestamp: CustomGraphQLDateType
+  serverPicoseconds: Int
+}
+type BooleanValue implements IValue {
+  value: Boolean
+  statusCode: StatusCode
+  sourceTimestamp: CustomGraphQLDateType
+  sourcePicoseconds: Int
+  serverTimestamp: CustomGraphQLDateType
+  serverPicoseconds: Int
+}
+type FloatValue implements IValue {
+  value: Float
+  statusCode: StatusCode
+  sourceTimestamp: CustomGraphQLDateType
+  sourcePicoseconds: Int
+  serverTimestamp: CustomGraphQLDateType
+  serverPicoseconds: Int
+}
+
+type ExpandedNode implements IValue {
+  value: ExpandedNodeId
+  statusCode: StatusCode
+  sourceTimestamp: CustomGraphQLDateType
+  sourcePicoseconds: Int
+  serverTimestamp: CustomGraphQLDateType
+  serverPicoseconds: Int
 }
 
 union TestUnion =  UaNull | UaLong | UaInt | UaFloat | UaIntArray | UaString | UaStringArray
@@ -188,7 +259,10 @@ enum ResultMaskEnum {
   DisplayName
   TypeDefinition
 }
-
+type References {
+  statusCode: StatusCode
+  references: [UaReference]
+}
 type UaReference {
   id: ID!
   browseName: QualifiedName
@@ -203,28 +277,28 @@ type UaReference {
 type UaNode {
   id: String!
   nodeClass: NodeClassEnum
-  browseName: QualifiedName
-  displayName: LocalizedText
-  writeMask: Int
-  userWriteMask: Int
-  isAbstract: Boolean
-  symmetric: Boolean
-  inverseName: LocalizedText
-  containsNoLoops: Boolean
-  eventNotifier: Int
-  nodeId: ExpandedNodeId
-  description: LocalizedText
-  dataValue: TestUnion
-  dataType: ExpandedNodeId
-  valueRank: Int
-  arrayDimensions: [Int]
-  accessLevel: Int
-  userAccessLevel: Int
-  minimumSamplingInterval: Float
-  historizing: Boolean
-  executable: Boolean
-  userExecutable: Boolean
-  outputArguments: [ArgumentValueType]
+  browseName: BrowseName
+  displayName: DisplayName
+  writeMask: IntValue
+  userWriteMask: IntValue
+  isAbstract: BooleanValue
+  symmetric: BooleanValue
+  inverseName: DisplayName
+  containsNoLoops: BooleanValue
+  eventNotifier: IntValue
+  nodeId: ExpandedNode
+  description: DisplayName
+  dataValue: DataValue
+  dataType: ExpandedNode
+  valueRank: IntValue
+  arrayDimensions: [Int] # sort later
+  accessLevel: IntValue
+  userAccessLevel: IntValue
+  minimumSamplingInterval: FloatValue
+  historizing: BooleanValue
+  executable: BooleanValue
+  userExecutable: BooleanValue
+  outputArguments: [ArgumentValueType]# sort later
   #browsePath(paths: [String] = [], types: [String] = [], subTypes: [Boolean] = [], isInverses: [Boolean] = []): UANode
   references(
     referenceTypeId: String, 
@@ -236,7 +310,7 @@ type UaNode {
     before: String, 
     first: Int, 
     after: String
-  ): [UaReference]
+  ): References
   self: UaNode
 
 }
@@ -267,6 +341,6 @@ type Subscription {
 `;
 
 export default makeExecutableSchema({
-  typeDefs: schema,
+  typeDefs: [schema],
   resolvers,
 });

@@ -1928,6 +1928,10 @@ graceful-fs@^4.1.2, graceful-fs@^4.1.4:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/graceful-readlink/-/graceful-readlink-1.0.1.tgz#4cafad76bc62f02fa039b2f94e9a3dd3a391a725"
 
+graphql-custom-datetype@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/graphql-custom-datetype/-/graphql-custom-datetype-0.3.0.tgz#6849d8fa6f3d685110b93bec753e7561c7fc720f"
+
 graphql-server-core@^0.4.3:
   version "0.4.3"
   resolved "https://registry.yarnpkg.com/graphql-server-core/-/graphql-server-core-0.4.3.tgz#3198832ce8703388713f012da023b33a3823be98"
@@ -1950,6 +1954,12 @@ graphql-server-module-graphiql@^0.4.3:
 graphql-subscriptions@^0.2.0:
   version "0.2.2"
   resolved "https://registry.yarnpkg.com/graphql-subscriptions/-/graphql-subscriptions-0.2.2.tgz#28c8e19d24b31abc6e97f4c9719ea99f890f6192"
+  dependencies:
+    es6-promise "^3.2.1"
+
+"graphql-subscriptions@git://github.com/gilesbradshaw/graphql-subscriptions#dist":
+  version "0.2.2"
+  resolved "git://github.com/gilesbradshaw/graphql-subscriptions#5f1ec723e23e63852e8a2a6c28ef438621545052"
   dependencies:
     es6-promise "^3.2.1"
 
