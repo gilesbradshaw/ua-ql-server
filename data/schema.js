@@ -19,6 +19,9 @@ type Post {
 }
 
 scalar CustomGraphQLDateType
+scalar GraphQLUUID
+scalar GraphQLDateTime
+scalar GraphQLByteString
 
 type ArgumentValueType {
   index: Int
@@ -137,7 +140,9 @@ interface IValue {
 }
 
 type DataValue implements IValue {
-  value: TestUnion
+  value: DataValueUnion
+  dataType: String
+  arrayType: String
   statusCode: StatusCode
   sourceTimestamp: CustomGraphQLDateType
   sourcePicoseconds: Int
@@ -195,58 +200,99 @@ type ExpandedNode implements IValue {
   serverPicoseconds: Int
 }
 
-union TestUnion =  UaNull | UaLong | UaInt | UaFloat | UaIntArray | UaString | UaStringArray
+union DataValueUnion =  
+  UaNull 
+  | UaLong 
+  | UaFloat 
+  | UaInt 
+  | UaDate 
+  | UaBoolean 
+  | UaString 
+  | UaQualifiedName  
+  | UaLocalizedText 
+  | UaGuid
+  | UaByteString
+  | UaLongArray 
+  | UaFloatArray 
+  | UaIntArray 
+  | UaDateArray 
+  | UaBooleanArray 
+  | UaStringArray 
+  | UaQualifiedNameArray 
+  | UaLocalizedTextArray 
+  | UaGuidArray 
+  | UaByteStringArray
 
 
-# Data type and array type for data values
-interface UaDataValue {
-  dataType: String
-  arrayType : String
-  statusCode: StatusCode
-}
-
-type UaNull implements UaDataValue {
-  dataType: String
-  arrayType: String
+type UaNull {
   value: String
-  statusCode: StatusCode
 }
-type UaLong implements UaDataValue {
-  dataType: String
-  arrayType: String
-  value: Int
-  statusCode: StatusCode
-}
-type UaInt implements UaDataValue {
-  dataType: String
-  arrayType: String
-  value: Int
-  statusCode: StatusCode
-}
-type UaIntArray implements UaDataValue {
-  dataType: String
-  arrayType: String
-  value: [Int]
-  statusCode: StatusCode
-}
-
-type UaFloat implements UaDataValue {
-  dataType: String
-  arrayType: String
+type UaLong {
   value: Float
-  statusCode: StatusCode
 }
-type UaString implements UaDataValue {
-  dataType: String
-  arrayType: String
+type UaBoolean {
+  value: Boolean
+}
+type UaInt  {
+  value: Int
+}
+type UaIntArray {
+  value: [Int]
+}
+type UaFloat {
+  value: Float
+}
+type UaString {
   value: String
-  statusCode: StatusCode
 }
-type UaStringArray implements UaDataValue {
-  dataType: String
-  arrayType: String
+type UaStringArray {
   value: [String]
-  statusCode: StatusCode
+}
+type UaDate {
+  value: GraphQLDateTime
+}
+type UaGuid {
+  value: GraphQLUUID
+}
+type UaQualifiedName {
+  value: QualifiedName
+}
+
+type UaByteString {
+  value: GraphQLByteString
+}
+
+type UaLocalizedText {
+  value: LocalizedText
+}
+
+type UaLongArray {
+  value: [Float]
+}
+
+type UaFloatArray {
+  value: [Float]
+}
+type UaDateArray {
+  value: [CustomGraphQLDateType]
+}
+type UaBooleanArray {
+  value: [Boolean]
+}
+type UaQualifiedNameArray {
+  value: [QualifiedName]
+}
+
+type UaLocalizedTextArray {
+  value: [LocalizedText]
+}
+
+type UaGuidArray {
+  value: [GraphQLUUID]
+}
+
+type UaByteStringArray {
+  value: [GraphQLByteString]
 }
 
 

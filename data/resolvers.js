@@ -1,9 +1,18 @@
 import { find, filter } from 'lodash';
 import Rx from 'rxjs';
+import CustomGraphQLDateType from 'graphql-custom-datetype';
+import {
+  GraphQLEmail,
+  GraphQLURL,
+  GraphQLDateTime,
+  GraphQLLimitedString,
+  GraphQLPassword,
+  GraphQLUUID
+} from 'graphql-custom-types';
+import GraphQLByteString from './customTypes/GraphQLByteString';
 import { pubsub } from './subscriptions';
 import { opcua, nextSession, handleError } from './opcua';
 import opcObserver from './opcua-observer';
-import CustomGraphQLDateType from 'graphql-custom-datetype';
 
 
 const authors = [
@@ -82,6 +91,10 @@ const getReferences = ({ nodeId, args }) => {
 };
 
 const resolveFunctions = {
+  CustomGraphQLDateType,
+  GraphQLUUID,
+  GraphQLDateTime,
+  GraphQLByteString,
   Query: {
     post(_, ok) {
       const { id } = ok;
@@ -127,37 +140,49 @@ const resolveFunctions = {
       }
     },
   },
-  CustomGraphQLDateType,
-  TestUnion: {   
+  DataValueUnion: {  
     __resolveType(obj, context, info) {
       const { $dataType: { key: dKey }, $arrayType: { key: aKey }} = obj
+      const getType = _d => {
+        switch (dKey) {
+          case 'Int32':
+            return 'UaInt';
+          case 'Int16':
+            return 'UaInt';
+          case 'UInt32':
+            return 'UaInt';
+          case 'UInt16':
+            return 'UaInt';
+          case 'SByte':
+            return 'UaInt';
+          case 'Int64':
+            return 'UaLong';
+
+          case 'String':
+            return 'UaString';
+          case 'Boolean':
+            return 'UaBoolean';
+          case 'Guid':
+            return 'UaGuid';
+          case 'DateTime':
+            return 'UaDate';
+          case 'Float':
+            return 'UaFloat';
+          case 'Double':
+            return 'UaFloat';
+          case 'ByteString':
+            return 'UaByteString';
+          default:
+            return null;
+        }
+      };
       switch (aKey) {
         case 'Scalar':
-          switch (dKey) {
-            case 'Int32':
-              return 'UaInt';
-            case 'Int16':
-              return 'UaInt';
-            case 'UInt32':
-              return 'UaInt';
-            case 'UInt16':
-              return 'UaInt';
-            case 'String':
-              return 'UaString';
-          }
+          return getType(dKey);
         case 'Array':
-          switch (dKey) {
-            case 'Int32':
-              return 'UaIntArray';
-            case 'Int16':
-              return 'UaIntArray';
-            case 'UInt32':
-              return 'UaIntArray';
-            case 'UInt16':
-              return 'UaIntArray';
-            case 'String':
-              return 'UaStringArray';
-          }
+          return `${getType(dKey)}Array`;
+        default:
+          return null;
       }
     },
   },
@@ -169,6 +194,7 @@ const resolveFunctions = {
       namespaceUri,
       serverIndex 
     }) {
+      // needs sorting
       return { id: `ns=${namespace};i=${value}` };
     },
   },
@@ -184,7 +210,16 @@ const resolveFunctions = {
     inverseName: get('InverseName'),
     containsNoLoops: get('ContainsNoLoops'),
     eventNotifier: get('EventNotifier'),
-    dataValue({ id }) { return getWholeAttribute(id, opcua.AttributeIds.Value).toPromise(); },
+    dataValue({ id }) {
+      return getWholeAttribute(id, opcua.AttributeIds.Value)
+        .map(v => { 
+          return ({
+          ...v,
+          dataType: v.value.$dataType.key,
+          arrayType: v.value.$arrayType.key,
+        })}
+        ).toPromise();
+    },
     dataType: get('DataType'),
     valueRank: get('ValueRank'),
     arrayDimensions({ id }) { return getAttribute(id, opcua.AttributeIds.ArrayDimensions).toPromise(); },
@@ -198,16 +233,6 @@ const resolveFunctions = {
     references({ id: nodeId }, args) {
       return getReferences({ nodeId, args }).toPromise();
     },
-    /*
-    arrayDimensions: getProperty(new GraphQLList(GraphQLInt), opcua.AttributeIds.ArrayDimensions), //16,  IntListResultType
-    accessLevel: getProperty(GraphQLInt, opcua.AttributeIds.AccessLevel), //17,
-    userAccessLevel: getProperty(GraphQLInt, opcua.AttributeIds.UserAccessLevel), //18,
-    minimumSamplingInterval: getProperty(GraphQLFloat, opcua.AttributeIds.MinimumSamplingInterval), //19,
-    historizing: getProperty(GraphQLBoolean, opcua.AttributeIds.Historizing), //20,
-    executable: getProperty(GraphQLBoolean, opcua.AttributeIds.Executable), //21,
-    userExecutable: getProperty(GraphQLBoolean, opcua.AttributeIds.UserExecutable), //22,
-    */
-    //outputArguments: {type: new GraphQLList(ArgumentValueType)},
     nodeClass(node) {
       return getAttribute(node.id, opcua.AttributeIds.NodeClass)
         .map((c) => {
@@ -222,7 +247,7 @@ const resolveFunctions = {
               return 'Method';
             case 8:
               return 'ObjectType';
-            case 16: 
+            case 16:
               return 'VariableType';
             case 32:
               return 'ReferenceType';

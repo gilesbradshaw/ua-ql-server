@@ -47,4 +47,6 @@ new SubscriptionServer(
   { subscriptionManager },
   websocketServer
 );
+const b = new Buffer("giles");
+console.log('b', b);
 
