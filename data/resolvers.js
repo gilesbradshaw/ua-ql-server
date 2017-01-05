@@ -127,17 +127,70 @@ const resolveFunctions = {
       pubsub.publish('postUpvoted', post);
       return post;
     },
+    callMethod(_, { id, methodId }) {
+      const methodsToCall = [{
+        objectId: id,
+        methodId,
+      }];
+      return new Promise(function(resolve, reject){
+        try{
+          nextSession().take(1).subscribe(session=>
+            session.call(methodsToCall, function(err, results) {
+              if (!err) {
+                if (results[0].statusCode.value) {
+                  reject(results[0].statusCode);
+                } else {
+                  resolve({ id });
+                }
+              } else {
+                reject(err);
+              }
+            }),
+            reject
+          );
+        }
+        catch(err){
+            reject(err);
+        }    
+      });
+    },
+    updateNode(_, { id, value: { value, dataType } }) {
+      return new Promise(function(resolve, reject){
+        try{
+          nextSession().take(1).subscribe(session=>
+            session.writeSingleNode(id, new opcua.Variant({ dataType, value }), function(err, result) {
+              console.log('updated node', err, result)
+              if (!err) {
+                if (result.value) {
+                  reject(result);
+                } else {
+                  resolve({ id });
+                }
+              } else {
+                reject(err);
+              }
+            }),
+            reject
+          );
+        }
+        catch(err){
+            reject(err);
+        }    
+      });
+    },
   },
   Subscription: {
     postUpvoted(post, { id }) {
       if (post.id === id) {
         return post;
       }
+      return null;
     },
     value(value, { id }) {
-      if(value.id === id) {
+      if (value.id === id) {
         return { id, dataValue: value.value, statusCode: value.statusCode };
       }
+      return null;
     },
   },
   DataValueUnion: {  

@@ -372,11 +372,25 @@ type Query {
 }
 
 
+input ValueInput {
+  value: String
+  dataType: String
+}
+
 # this schema allows the following mutation:
 type Mutation {
   upvotePost (
     postId: Int!
   ): Post
+  callMethod (
+    id: String
+    methodId: String
+  ): UaNode
+
+  updateNode (
+    id: String
+    value: ValueInput
+  ): UaNode
 }
 
 type Subscription {
