@@ -22,6 +22,13 @@ scalar CustomGraphQLDateType
 scalar GraphQLUUID
 scalar GraphQLDateTime
 scalar GraphQLByteString
+scalar JSON
+
+input ValueInput {
+  value: JSON
+  dataType: String
+  arrayType: String
+}
 
 type ArgumentValueType {
   index: Int
@@ -204,6 +211,7 @@ union DataValueUnion =
   UaNull 
   | UaLong 
   | UaFloat 
+  | UaDouble 
   | UaInt 
   | UaDate 
   | UaBoolean 
@@ -214,6 +222,7 @@ union DataValueUnion =
   | UaByteString
   | UaLongArray 
   | UaFloatArray 
+  | UaDoubleArray 
   | UaIntArray 
   | UaDateArray 
   | UaBooleanArray 
@@ -228,6 +237,9 @@ type UaNull {
   value: String
 }
 type UaLong {
+  value: Float
+}
+type UaDouble {
   value: Float
 }
 type UaBoolean {
@@ -267,6 +279,9 @@ type UaLocalizedText {
 }
 
 type UaLongArray {
+  value: [Float]
+}
+type UaDoubleArray {
   value: [Float]
 }
 
@@ -372,10 +387,6 @@ type Query {
 }
 
 
-input ValueInput {
-  value: String
-  dataType: String
-}
 
 # this schema allows the following mutation:
 type Mutation {
@@ -396,6 +407,7 @@ type Mutation {
 type Subscription {
   postUpvoted(id: Int): Post
   value(id: String): UaNode
+  executable(id: String): UaNode
 }
 
 `;

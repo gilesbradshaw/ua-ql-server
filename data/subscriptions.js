@@ -1,6 +1,7 @@
 import { PubSub, SubscriptionManager } from 'graphql-subscriptions';
 import schema from './schema';
 import opcObserver from './opcua-observer';
+import opcPoller from './opcua-poller';
 import { opcua } from './opcua';
 
 
@@ -19,12 +20,23 @@ class MyPubSub extends PubSub {
     channelOptions,
     args
   ) {
-    console.log('subscribing', args);
+    console.log('subscribing', { trigger, args });
     
     const ret = super.subscribe(trigger, onMessage);
-    if (trigger === 'value' && args) {
+    let attributeId;
+    let observer;
+    if (trigger === 'value') {
+      attributeId = opcua.AttributeIds.Value;
+      observer = opcObserver;
+    }
+    if (trigger === 'executable') {
+      attributeId = opcua.AttributeIds.Executable;
+      observer = opcPoller;
+    }
+
+    if (args) {
       console.log('subscribed to:', trigger, nodeId, nodeId && valueSubscriptionCounters[attributeId][nodeId]);
-      const { id: nodeId, attributeId = opcua.AttributeIds.Value } = args;
+      const { id: nodeId } = args;
       valueSubscriptionCounters[attributeId] = valueSubscriptionCounters[attributeId] || {};
       valueSubscriptions[attributeId] = valueSubscriptions[attributeId] || {};
 
@@ -33,9 +45,9 @@ class MyPubSub extends PubSub {
         ret.then((f) => {
           valueSubscriptionIds[f] = { nodeId, attributeId };
           if (valueSubscriptionCounters[attributeId][nodeId] === 1) {
-            valueSubscriptions[attributeId][nodeId] = opcObserver({ nodeId, attributeId }).subscribe((v) => {
+            valueSubscriptions[attributeId][nodeId] = observer({ nodeId, attributeId }).subscribe((v) => {
               resolve(f);
-              this.publish('value', v);
+              this.publish(trigger, v);
             });
           } else {
             resolve(f);

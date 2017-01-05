@@ -9,6 +9,7 @@ import {
   GraphQLPassword,
   GraphQLUUID
 } from 'graphql-custom-types';
+import GraphQLJSON from 'graphql-type-json';
 import GraphQLByteString from './customTypes/GraphQLByteString';
 import { pubsub } from './subscriptions';
 import { opcua, nextSession, handleError } from './opcua';
@@ -60,25 +61,54 @@ const get = name=> ({ id }) =>
 const getReferences = ({ nodeId, args }) => {
   const {
     referenceTypeId,
-    browseDirection = 0,
-    nodeClasses = [255],
+    browseDirection = 'Both',
+    nodeClasses,
     includeSubtypes,
     results,
   } = args;
+  console.log('NCS', nodeClasses);
+  const nodeClassMask = nodeClasses ? nodeClasses.map(c => {
+    switch (c) {
+      case 'Unspecified':
+        return 0;
+      case 'Object':
+        return 1;
+      case 'Variable':
+        return 2;
+      case 'Method':
+        return 4;
+      case 'ObjectType':
+        return 8;
+      case 'VariableType':
+        return 16;
+      case 'ReferenceType':
+        return 32;
+      case 'DataType':
+        return 64;
+      case 'View':
+        return 128;
+      default:
+        return 0;
+    }
+  }).reduce(((p, c) => p | c), 0) : 255;
   const browseDescription = {
     nodeId,
     referenceTypeId,
     browseDirection,
-    includeSubtypes,
-    nodeClassMask: nodeClasses ? nodeClasses.reduce(((p, c)=>p | c), 0) : 0,
+    includeSubtypes: includeSubtypes || undefined,
+    nodeClassMask,
+    //nodeClassMask: nodeClasses ? nodeClasses.reduce(((p, c)=>p | c), 0) : 0,
     resultMask: results ? results.reduce(((p, c)=>p | c), 0) : 63,
   };
+  console.log(browseDescription);
+
   return nextSession()
     .take(1)
     .flatMap(session =>
       Rx.Observable.bindCallback(
         session.browse.bind(session),
         (err, browseResult) => {
+          console.log('errrr', err)
           // mystifid re nodeClass
           return { 
             ...browseResult[0], 
@@ -95,6 +125,7 @@ const resolveFunctions = {
   GraphQLUUID,
   GraphQLDateTime,
   GraphQLByteString,
+  JSON: GraphQLJSON,
   Query: {
     post(_, ok) {
       const { id } = ok;
@@ -154,14 +185,20 @@ const resolveFunctions = {
         }    
       });
     },
-    updateNode(_, { id, value: { value, dataType } }) {
+    updateNode(_, { id, value: { value, dataType, arrayType } }) {
+      console.log('attemting update', { id, value: { value, dataType, arrayType } });
       return new Promise(function(resolve, reject){
         try{
           nextSession().take(1).subscribe(session=>
-            session.writeSingleNode(id, new opcua.Variant({ dataType, value }), function(err, result) {
+            session.writeSingleNode(id, new opcua.Variant({ 
+              dataType,
+              arrayType: opcua.VariantArrayType.Array,
+              value,
+             }), function(err, result) {
               console.log('updated node', err, result)
               if (!err) {
                 if (result.value) {
+                  console.log('no value', result)
                   reject(result);
                 } else {
                   resolve({ id });
@@ -174,6 +211,7 @@ const resolveFunctions = {
           );
         }
         catch(err){
+            console.log('got err', err)
             reject(err);
         }    
       });
@@ -189,6 +227,12 @@ const resolveFunctions = {
     value(value, { id }) {
       if (value.id === id) {
         return { id, dataValue: value.value, statusCode: value.statusCode };
+      }
+      return null;
+    },
+    executable(executable, { id }) {
+      if (executable.id === id) {
+        return { id, executable: executable.value, statusCode: executable.statusCode };
       }
       return null;
     },
@@ -222,7 +266,7 @@ const resolveFunctions = {
           case 'Float':
             return 'UaFloat';
           case 'Double':
-            return 'UaFloat';
+            return 'UaDouble';
           case 'ByteString':
             return 'UaByteString';
           default:
