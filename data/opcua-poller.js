@@ -13,7 +13,6 @@ const opcuaPoller = ({ nodeId, attributeId = opcua.AttributeIds.Value }) =>
         nodeId,
         attributeId,
       }]).map((value) => {
-        console.log('polled', value);
         return ({ id: nodeId, value: value[0] });
       })
     )

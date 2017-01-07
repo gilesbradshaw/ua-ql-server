@@ -30,6 +30,22 @@ input ValueInput {
   arrayType: String
 }
 
+# these are defined for methods
+type Argument {
+  name: String
+  dataType: UaNode
+  valueRank: Int
+  arrayDimensions: [Int]
+  description: LocalizedText
+}
+
+type Arguments {
+  inputArguments: [Argument]
+  outputArguments: [Argument]
+}
+
+
+
 type ArgumentValueType {
   index: Int
   dataType: String
@@ -220,6 +236,10 @@ union DataValueUnion =
   | UaLocalizedText 
   | UaGuid
   | UaByteString
+  | UaXmlElement
+  | UaStatusCode
+  | UaNodeId
+  | UaExpandedNodeId
   | UaLongArray 
   | UaFloatArray 
   | UaDoubleArray 
@@ -231,7 +251,10 @@ union DataValueUnion =
   | UaLocalizedTextArray 
   | UaGuidArray 
   | UaByteStringArray
-
+  | UaXmlElementArray
+  | UaStatusCodeArray
+  | UaNodeIdArray
+  | UaExpandedNodeIdArray
 
 type UaNull {
   value: String
@@ -269,7 +292,12 @@ type UaGuid {
 type UaQualifiedName {
   value: QualifiedName
 }
-
+type UaXmlElement {
+  value: String
+}
+type UaStatusCode {
+  value: StatusCode
+}
 type UaByteString {
   value: GraphQLByteString
 }
@@ -278,6 +306,12 @@ type UaLocalizedText {
   value: LocalizedText
 }
 
+type UaNodeId {
+  value: ExpandedNodeId
+}
+type UaExpandedNodeId {
+  value: ExpandedNodeId
+}
 type UaLongArray {
   value: [Float]
 }
@@ -310,7 +344,20 @@ type UaByteStringArray {
   value: [GraphQLByteString]
 }
 
+type UaXmlElementArray {
+  value: [String]
+}
+type UaStatusCodeArray {
+  value: [StatusCode]
+}
 
+type UaNodeIdArray {
+  value: [ExpandedNodeId]
+}
+
+type UaExpandedNodeIdArray {
+  value: [ExpandedNodeId]
+}
 
 enum ResultMaskEnum {
   ReferenceType
@@ -359,7 +406,8 @@ type UaNode {
   historizing: BooleanValue
   executable: BooleanValue
   userExecutable: BooleanValue
-  outputArguments: [ArgumentValueType]# sort later
+  outputArguments: [ArgumentValueType] # sort later
+  arguments: Arguments
   #browsePath(paths: [String] = [], types: [String] = [], subTypes: [Boolean] = [], isInverses: [Boolean] = []): UANode
   references(
     referenceTypeId: String, 

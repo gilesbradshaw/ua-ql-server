@@ -13,6 +13,7 @@ import GraphQLJSON from 'graphql-type-json';
 import GraphQLByteString from './customTypes/GraphQLByteString';
 import { pubsub } from './subscriptions';
 import { opcua, nextSession, handleError } from './opcua';
+import { resolveNodeId } from 'node-opcua';
 import opcObserver from './opcua-observer';
 
 
@@ -55,6 +56,23 @@ const getWholeAttribute = (nodeId, attributeId) => {
   );
 };
 
+
+const getArguments = ({ nodeId }) => {
+  console.log('gettijg ', nodeId)
+  return nextSession()
+  .take(1)
+  .flatMap(session =>
+    Rx.Observable.bindCallback(
+      session.getArgumentDefinition.bind(session),
+      (err, inputArguments, outputArguments) => {
+        if (err) throw (err);
+        return {
+          inputArguments: inputArguments.map(i =>( {...i, dataType: {id: i.dataType}})), outputArguments };
+      }
+    )(resolveNodeId(nodeId))
+  );
+};
+
 const get = name=> ({ id }) =>
       getWholeAttribute(id, opcua.AttributeIds[name])
         .map(v => ({ ...v, value: v.value && v.value.value })).toPromise();
@@ -66,7 +84,6 @@ const getReferences = ({ nodeId, args }) => {
     includeSubtypes,
     results,
   } = args;
-  console.log('NCS', nodeClasses);
   const nodeClassMask = nodeClasses ? nodeClasses.map(c => {
     switch (c) {
       case 'Unspecified':
@@ -100,15 +117,13 @@ const getReferences = ({ nodeId, args }) => {
     //nodeClassMask: nodeClasses ? nodeClasses.reduce(((p, c)=>p | c), 0) : 0,
     resultMask: results ? results.reduce(((p, c)=>p | c), 0) : 63,
   };
-  console.log(browseDescription);
-
+  
   return nextSession()
     .take(1)
     .flatMap(session =>
       Rx.Observable.bindCallback(
         session.browse.bind(session),
         (err, browseResult) => {
-          console.log('errrr', err)
           // mystifid re nodeClass
           return { 
             ...browseResult[0], 
@@ -186,7 +201,6 @@ const resolveFunctions = {
       });
     },
     updateNode(_, { id, value: { value, dataType, arrayType } }) {
-      console.log('attemting update', { id, value: { value, dataType, arrayType } });
       return new Promise(function(resolve, reject){
         try{
           nextSession().take(1).subscribe(session=>
@@ -195,10 +209,8 @@ const resolveFunctions = {
               arrayType: opcua.VariantArrayType.Array,
               value,
              }), function(err, result) {
-              console.log('updated node', err, result)
               if (!err) {
                 if (result.value) {
-                  console.log('no value', result)
                   reject(result);
                 } else {
                   resolve({ id });
@@ -211,7 +223,6 @@ const resolveFunctions = {
           );
         }
         catch(err){
-            console.log('got err', err)
             reject(err);
         }    
       });
@@ -240,6 +251,7 @@ const resolveFunctions = {
   DataValueUnion: {  
     __resolveType(obj, context, info) {
       const { $dataType: { key: dKey }, $arrayType: { key: aKey }} = obj
+        
       const getType = _d => {
         switch (dKey) {
           case 'Int32':
@@ -269,10 +281,23 @@ const resolveFunctions = {
             return 'UaDouble';
           case 'ByteString':
             return 'UaByteString';
+          case 'LocalizedText':
+            return 'UaLocalizedText';
+          case 'QualifiedName':
+            return 'UaQualifiedName';
+          case 'XmlElement':
+            return 'UaXmlElement';
+          case 'StatusCode':
+            return 'StatusCode';
+          case 'NodeId':
+            return 'UaNodeId';
+          case 'ExpandedNodeId':
+            return 'UaExpandedNodeId';
           default:
             return null;
         }
       };
+      
       switch (aKey) {
         case 'Scalar':
           return getType(dKey);
@@ -326,6 +351,7 @@ const resolveFunctions = {
     historizing: get('Historizing'),
     executable: get('Executable'),
     userExecutable: get('UserExecutable:'),
+    arguments: ({ id: nodeId }) => getArguments({ nodeId }).toPromise(),
     outputArguments({ id }) { return getAttribute(id, opcua.AttributeIds.OutputArguments).toPromise(); },
     references({ id: nodeId }, args) {
       return getReferences({ nodeId, args }).toPromise();
