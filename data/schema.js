@@ -50,7 +50,7 @@ type ArgumentValueType {
   index: Int
   dataType: String
   arrayType: String
-  value: TypedArgumentValue
+  value: JSON
 }
 
 enum BrowseDirectionEnum {
@@ -381,9 +381,15 @@ type UaReference {
   referenceTypeId: ExpandedNodeId
   typeDefinition: ExpandedNodeId
 }
-
+type arrr {
+  index: Int
+  dataType: String
+  arrayType: String
+  value: JSON
+}
 type UaNode {
   id: String!
+  commandCount: Int
   nodeClass: NodeClassEnum
   browseName: BrowseName
   displayName: DisplayName
@@ -406,9 +412,11 @@ type UaNode {
   historizing: BooleanValue
   executable: BooleanValue
   userExecutable: BooleanValue
-  outputArguments: [ArgumentValueType] # sort later
+  outArguments: [ArgumentValueType]
+  outputArguments: [ArgumentValueType]
+  outputArgument: ArgumentValueType # sort later
   arguments: Arguments
-  #browsePath(paths: [String] = [], types: [String] = [], subTypes: [Boolean] = [], isInverses: [Boolean] = []): UANode
+  browsePath(paths: [String] = [], types: [String] = [], subTypes: [Boolean] = [], isInverses: [Boolean] = []): UaNode
   references(
     referenceTypeId: String, 
     browseDirection: BrowseDirectionEnum, 
@@ -434,7 +442,10 @@ type Query {
   authors: [Author]
 }
 
-
+input InputArgument {
+  dataType: String
+  value: JSON
+}
 
 # this schema allows the following mutation:
 type Mutation {
@@ -444,6 +455,7 @@ type Mutation {
   callMethod (
     id: String
     methodId: String
+    inputArguments: [InputArgument]
   ): UaNode
 
   updateNode (

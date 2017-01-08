@@ -16,6 +16,7 @@ import { opcua, nextSession, handleError } from './opcua';
 import { resolveNodeId } from 'node-opcua';
 import opcObserver from './opcua-observer';
 
+let commandCount=0;
 
 const authors = [
   { id: 1, firstName: 'Tom', lastName: 'Coleman' },
@@ -56,6 +57,47 @@ const getWholeAttribute = (nodeId, attributeId) => {
   );
 };
 
+const browsePath = ({id}, args) => new Promise(function(resolve, reject){
+  console.log('gettg b paths', id, args)
+  nextSession().take(1)
+    //.timeout(3000, new Error('Timeout, try later...'))
+    .subscribe(session=> {
+    const bpath= [{
+      startingNode: resolveNodeId(id),
+      relativePath: { 
+        elements: args.paths.map((p,i)=>({
+          targetName: {
+            namespaceIndex: p.split(':')[1] || 0,
+            name: p.split(':')[0]
+          },
+          referenceTypeId: args.types[i],
+          isInverse: !!args.isInverses[i],
+          includeSubtypes: true //!!args.subTypes[i],
+        }))
+      }
+    }];
+    try{
+      session.translateBrowsePath(bpath, (err, x) => {
+        console.log('somethng back!!!!!', JSON.stringify(x), err)
+        if(!err) {
+          if(x[0]) {
+            if(x[0].targets) {
+              if(x[0].targets[0])
+                resolve({id: x[0].targets[0].targetId});
+                return;
+            }
+          }
+          resolve(null);
+        } else {
+          reject(err);
+        }
+      });
+    } catch (ex) {
+      console.log(ex);
+    }
+    
+  }, reject);
+})
 
 const getArguments = ({ nodeId }) => {
   console.log('gettijg ', nodeId)
@@ -173,20 +215,42 @@ const resolveFunctions = {
       pubsub.publish('postUpvoted', post);
       return post;
     },
-    callMethod(_, { id, methodId }) {
+    callMethod(_, arg) {
+      const { id, methodId, inputArguments} = arg;
+      console.log('call', inputArguments);
+      console.log('gah', arg);
       const methodsToCall = [{
         objectId: id,
         methodId,
+        inputArguments: inputArguments.map(a => new opcua.Variant({ dataType: opcua.DataType[a.dataType], value: a.value }))
       }];
       return new Promise(function(resolve, reject){
         try{
           nextSession().take(1).subscribe(session=>
             session.call(methodsToCall, function(err, results) {
               if (!err) {
+                console.log('result', JSON.stringify(results, null, 2));
                 if (results[0].statusCode.value) {
                   reject(results[0].statusCode);
                 } else {
-                  resolve({ id });
+                  console.log('args gonna be', inputArguments);
+                  commandCount++;
+                  resolve({ 
+                    id: methodId, 
+                    commandCount,
+                    outputArgument: {
+                      index: 0,
+                      dataType: 'ahh',
+                      arrayType: '0ooo',
+                      value: 1
+                    },
+                    outArguments: [{
+                      index: 0,
+                      dataType: 'ahh',
+                      arrayType: '0ooo',
+                      value: 4,
+                    }]
+                  });
                 }
               } else {
                 reject(err);
@@ -206,7 +270,7 @@ const resolveFunctions = {
           nextSession().take(1).subscribe(session=>
             session.writeSingleNode(id, new opcua.Variant({ 
               dataType,
-              arrayType: opcua.VariantArrayType.Array,
+              arrayType: opcua.VariantArrayType[arrayType],
               value,
              }), function(err, result) {
               if (!err) {
@@ -342,6 +406,7 @@ const resolveFunctions = {
         })}
         ).toPromise();
     },
+    browsePath,
     dataType: get('DataType'),
     valueRank: get('ValueRank'),
     arrayDimensions({ id }) { return getAttribute(id, opcua.AttributeIds.ArrayDimensions).toPromise(); },
