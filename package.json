@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/gilesbradshaw/ua-ql-server#readme",
   "dependencies": {
+    "babel": "^6.5.2",
     "body-parser": "^1.15.2",
     "cors": "^2.8.0",
     "express": "4.14.0",
