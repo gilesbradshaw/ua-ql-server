@@ -20,7 +20,7 @@ const graphQLServer = express().use('*', cors());
 graphQLServer.use('/graphql', bodyParser.json(), graphqlExpress({
   schema,
   context: {},
-}));
+})); 
 
 graphQLServer.use('/graphiql', graphiqlExpress({
   endpointURL: '/graphql',
