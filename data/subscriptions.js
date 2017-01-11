@@ -20,8 +20,6 @@ class MyPubSub extends PubSub {
     channelOptions,
     args
   ) {
-    console.log('subscribing', { trigger, args });
-    
     const ret = super.subscribe(trigger, onMessage);
     let attributeId;
     let observer;
@@ -35,7 +33,6 @@ class MyPubSub extends PubSub {
     }
 
     if (args) {
-      console.log('subscribed to:', trigger, nodeId, nodeId && valueSubscriptionCounters[attributeId][nodeId]);
       const { id: nodeId } = args;
       valueSubscriptionCounters[attributeId] = valueSubscriptionCounters[attributeId] || {};
       valueSubscriptions[attributeId] = valueSubscriptions[attributeId] || {};
@@ -64,12 +61,11 @@ class MyPubSub extends PubSub {
       if (nodeId) {
         valueSubscriptionCounters[attributeId][nodeId] -= 1;
         if (!valueSubscriptionCounters[attributeId][nodeId]) {
-          console.log('unsubscribing fully from:', { nodeId, attributeId });
           valueSubscriptions[attributeId][nodeId].unsubscribe();
           delete valueSubscriptions[attributeId][nodeId];
           delete valueSubscriptionCounters[attributeId][nodeId];
         } else {
-          console.log('unsubscribing from:', { nodeId, attributeId });
+          
         }
       }
     }

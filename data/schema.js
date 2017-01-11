@@ -4,19 +4,6 @@ import { makeExecutableSchema } from 'graphql-tools';
 import resolvers from './resolvers';
 
 const schema = `
-type Author {
-  id: Int! # the ! means that every author object _must_ have an id
-  firstName: String
-  lastName: String
-  posts: [Post] # the list of Posts by this author
-}
-
-type Post {
-  id: Int!
-  title: String
-  author: Author
-  votes: Int
-}
 
 scalar CustomGraphQLDateType
 scalar GraphQLUUID
@@ -381,15 +368,25 @@ type UaReference {
   referenceTypeId: ExpandedNodeId
   typeDefinition: ExpandedNodeId
 }
-type arrr {
-  index: Int
-  dataType: String
-  arrayType: String
-  value: JSON
+
+
+input RelativePath {
+  elements: [PathElement]
 }
+input PathElement {
+  targetName: TargetName
+  referenceTypeId: String
+  isInverse: Boolean
+  includeSubtypes: Boolean
+}
+
+input TargetName {
+  namespaceIndex: Int
+  name: String
+}
+
 type UaNode {
   id: String!
-  commandCount: Int
   nodeClass: NodeClassEnum
   browseName: BrowseName
   displayName: DisplayName
@@ -416,7 +413,7 @@ type UaNode {
   outputArguments: [ArgumentValueType]
   outputArgument: ArgumentValueType # sort later
   arguments: Arguments
-  browsePath(paths: [String] = [], types: [String] = [], subTypes: [Boolean] = [], isInverses: [Boolean] = []): UaNode
+  browsePath(relativePath: RelativePath): [UaNode]
   references(
     referenceTypeId: String, 
     browseDirection: BrowseDirectionEnum, 
@@ -437,9 +434,6 @@ type UaNode {
 # the schema allows the following query:
 type Query {
   uaNode(id: String!): UaNode
-  post(id: Int): Post,
-  posts: [Post],
-  authors: [Author]
 }
 
 input InputArgument {
@@ -449,9 +443,6 @@ input InputArgument {
 
 # this schema allows the following mutation:
 type Mutation {
-  upvotePost (
-    postId: Int!
-  ): Post
   callMethod (
     id: String
     methodId: String
@@ -465,7 +456,6 @@ type Mutation {
 }
 
 type Subscription {
-  postUpvoted(id: Int): Post
   value(id: String): UaNode
   executable(id: String): UaNode
 }

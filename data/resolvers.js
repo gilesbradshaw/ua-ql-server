@@ -16,18 +16,6 @@ import { opcua, nextSession, handleError } from './opcua';
 import { resolveNodeId } from 'node-opcua';
 import opcObserver from './opcua-observer';
 
-let commandCount=0;
-
-const authors = [
-  { id: 1, firstName: 'Tom', lastName: 'Coleman' },
-  { id: 2, firstName: 'Sashko', lastName: 'Stubailo' },
-];
-
-const posts = [
-  { id: 1, authorId: 1, title: 'Introduction to GraphQL', votes: 2 },
-  { id: 2, authorId: 2, title: 'GraphQL Rocks', votes: 3 },
-  { id: 3, authorId: 2, title: 'Advanced GraphQL', votes: 1 },
-];
 
 const getAttribute = (nodeId, attributeId) => {
   return nextSession()
@@ -57,34 +45,21 @@ const getWholeAttribute = (nodeId, attributeId) => {
   );
 };
 
-const browsePath = ({id}, args) => new Promise(function(resolve, reject){
-  console.log('gettg b paths', id, args)
+const browsePath = ({ id }, { relativePath }) => new Promise(function(resolve, reject){
   nextSession().take(1)
     //.timeout(3000, new Error('Timeout, try later...'))
     .subscribe(session=> {
     const bpath= [{
       startingNode: resolveNodeId(id),
-      relativePath: { 
-        elements: args.paths.map((p,i)=>({
-          targetName: {
-            namespaceIndex: p.split(':')[1] || 0,
-            name: p.split(':')[0]
-          },
-          referenceTypeId: args.types[i],
-          isInverse: !!args.isInverses[i],
-          includeSubtypes: true //!!args.subTypes[i],
-        }))
-      }
+      relativePath,
     }];
     try{
       session.translateBrowsePath(bpath, (err, x) => {
-        console.log('somethng back!!!!!', JSON.stringify(x), err)
         if(!err) {
           if(x[0]) {
             if(x[0].targets) {
-              if(x[0].targets[0])
-                resolve({id: x[0].targets[0].targetId});
-                return;
+              resolve(x[0].targets.map(t => ({ id: t.targetId })));
+              return;
             }
           }
           resolve(null);
@@ -93,14 +68,12 @@ const browsePath = ({id}, args) => new Promise(function(resolve, reject){
         }
       });
     } catch (ex) {
-      console.log(ex);
+      reject(ex);
     }
-    
   }, reject);
-})
+});
 
 const getArguments = ({ nodeId }) => {
-  console.log('gettijg ', nodeId)
   return nextSession()
   .take(1)
   .flatMap(session =>
@@ -184,41 +157,13 @@ const resolveFunctions = {
   GraphQLByteString,
   JSON: GraphQLJSON,
   Query: {
-    post(_, ok) {
-      const { id } = ok;
-      return posts.find(p => p.id === id);
-    },
     uaNode(_, { id }) {
       return { id };
     },
-    posts() {
-      return new Promise((resolve) => {
-        nextSession().take(1).subscribe((session) => {
-          const nodesToRead = [{ nodeId: 'ns=0;i=85', attributeId: 5 }];
-          session.read(nodesToRead, function(err, _nodesToRead, results) {
-            resolve(posts);
-          });
-        });
-      });
-    },
-    authors() {
-      return new Promise(resolve => resolve(authors));
-    },
   },
   Mutation: {
-    upvotePost(_, { postId }) {
-      const post = find(posts, { id: postId });
-      if (!post) {
-        throw new Error(`Couldn't find post with id ${postId}`);
-      }
-      post.votes += 1;
-      pubsub.publish('postUpvoted', post);
-      return post;
-    },
     callMethod(_, arg) {
       const { id, methodId, inputArguments} = arg;
-      console.log('call', inputArguments);
-      console.log('gah', arg);
       const methodsToCall = [{
         objectId: id,
         methodId,
@@ -229,15 +174,11 @@ const resolveFunctions = {
           nextSession().take(1).subscribe(session=>
             session.call(methodsToCall, function(err, results) {
               if (!err) {
-                console.log('result', JSON.stringify(results, null, 2));
                 if (results[0].statusCode.value) {
                   reject(results[0].statusCode);
                 } else {
-                  console.log('args gonna be', inputArguments);
-                  commandCount++;
                   resolve({ 
                     id: methodId, 
-                    commandCount,
                     outputArgument: {
                       index: 0,
                       dataType: 'ahh',
@@ -293,12 +234,6 @@ const resolveFunctions = {
     },
   },
   Subscription: {
-    postUpvoted(post, { id }) {
-      if (post.id === id) {
-        return post;
-      }
-      return null;
-    },
     value(value, { id }) {
       if (value.id === id) {
         return { id, dataValue: value.value, statusCode: value.statusCode };
@@ -401,8 +336,8 @@ const resolveFunctions = {
         .map(v => { 
           return ({
           ...v,
-          dataType: v.value.$dataType.key,
-          arrayType: v.value.$arrayType.key,
+          dataType: v.value && v.value.$dataType.key,
+          arrayType: v.value && v.value.$arrayType.key,
         })}
         ).toPromise();
     },
@@ -451,16 +386,6 @@ const resolveFunctions = {
     },
     self(node) {
       return node;
-    },
-  },
-  Author: {
-    posts(author) {
-      return filter(posts, { authorId: author.id });
-    },
-  },
-  Post: {
-    author(post) {
-      return find(authors, { id: post.authorId });
     },
   },
 };

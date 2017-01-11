@@ -9,6 +9,7 @@ import { printSchema } from 'graphql/utilities/schemaPrinter';
 import { subscriptionManager } from './data/subscriptions';
 import schema from './data/schema';
 
+
 const GRAPHQL_PORT = 8089;
 const WS_PORT = 8090;
 
@@ -23,7 +24,7 @@ graphQLServer.use('/graphiql', graphiqlExpress({
   endpointURL: '/graphql',
 }));
 
-graphQLServer.use('/schema', (req, res) => {
+graphQLServer.use('/schema', (request, res) => {
   res.set('Content-Type', 'text/plain');
   res.send(printSchema(schema));
 });
