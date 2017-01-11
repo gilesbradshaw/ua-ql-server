@@ -18,8 +18,12 @@ const graphQLServer = express().use('*', cors());
 graphQLServer.use('/', (request, res) => {
   res.set('Content-Type', 'text/plain');
   res.send('hey');
+  res.end();
 });
 
+graphQLServer.listen(GRAPHQL_PORT, () => console.log(
+  `GraphQL Server is now running on http://localhost:${GRAPHQL_PORT}/graphql`
+));
 /*
 graphQLServer.use('/graphql', bodyParser.json(), graphqlExpress({
   schema,
