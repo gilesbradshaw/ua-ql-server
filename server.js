@@ -10,8 +10,8 @@ import { subscriptionManager } from './data/subscriptions';
 import schema from './data/schema';
 
 
-const GRAPHQL_PORT = 8089;
-const WS_PORT = 8090;
+const GRAPHQL_PORT = process.env.port;
+const WS_PORT = port;
 
 const graphQLServer = express().use('*', cors());
 
