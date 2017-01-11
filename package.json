@@ -4,7 +4,7 @@
   "description": "GraphQl Server exposing OPC-UA",
   "scripts": {
     "start": "./node_modules/.bin/babel-node  ./server.js",
-    "start-subscriptin": "./node_modules/.bin/babel-node  ./subscription-server.js",
+    "start-subscription": "./node_modules/.bin/babel-node  ./subscription-server.js",
     "startold": "nodemon ./server.js --exec babel-node",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint ."
