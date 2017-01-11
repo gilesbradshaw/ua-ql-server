@@ -49,6 +49,7 @@ const websocketServer = createServer((request, response) => {
 // eslint-disable-next-line
 new SubscriptionServer(
   { subscriptionManager },
+  graphQLServer,
   websocketServer
 );
 
