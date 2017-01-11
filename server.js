@@ -10,10 +10,9 @@ import { subscriptionManager } from './data/subscriptions';
 import schema from './data/schema';
 
 console.log('at least it gets here' + process.env.PORT);
-console.log('ahh', process.env.WS_PORT);
-const GRAPHQL_PORT = process.env.PORT || 8080;
-const WS_PORT = GRAPHQL_PORT + 1;
-
+const GRAPHQL_PORT = process.env.PORT || 8089;
+const WS_PORT = process.env.PORT || 8090;
+/*
 const graphQLServer = express().use('*', cors());
 
 
@@ -35,21 +34,20 @@ graphQLServer.use('/schema', (request, res) => {
 graphQLServer.listen(GRAPHQL_PORT, () => console.log(
   `GraphQL Server is now running on http://localhost:${GRAPHQL_PORT}/graphql`
 ));
-
+*/
 // WebSocket server for subscriptions
 const websocketServer = createServer((request, response) => {
   response.writeHead(404);
   response.end();
 });
 
-//websocketServer.listen(WS_PORT, () => console.log( // eslint-disable-line no-console
-//  `Websocket Server is now running on http://localhost:${WS_PORT}`
-//));
+websocketServer.listen(WS_PORT, () => console.log( // eslint-disable-line no-console
+  `Websocket Server is now running on http://localhost:${WS_PORT}`
+));
 
 // eslint-disable-next-line
 new SubscriptionServer(
   { subscriptionManager },
-  graphQLServer,
   websocketServer
 );
 
