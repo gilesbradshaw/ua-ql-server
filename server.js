@@ -10,6 +10,7 @@ import { subscriptionManager } from './data/subscriptions';
 import schema from './data/schema';
 
 console.log('at least it gets here' + process.env.PORT);
+console.log('ahh', process.env.WS_PORT);
 const GRAPHQL_PORT = process.env.PORT || 8080;
 const WS_PORT = GRAPHQL_PORT + 1;
 
