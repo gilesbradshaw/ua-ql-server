@@ -15,6 +15,12 @@ const WS_PORT = GRAPHQL_PORT + 1;
 
 const graphQLServer = express().use('*', cors());
 
+graphQLServer.use('/', (request, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send('hey');
+});
+
+/*
 graphQLServer.use('/graphql', bodyParser.json(), graphqlExpress({
   schema,
   context: {},
@@ -49,4 +55,4 @@ new SubscriptionServer(
   websocketServer
 );
 
-
+*/
