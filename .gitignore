@@ -27,7 +27,7 @@ build/Release
 node_modules
 
 # certificates directory
-certificates
+# certificates
 
 # Optional npm cache directory
 .npm
