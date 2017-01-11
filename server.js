@@ -9,7 +9,7 @@ import { printSchema } from 'graphql/utilities/schemaPrinter';
 import { subscriptionManager } from './data/subscriptions';
 import schema from './data/schema';
 
-
+console.log('at least it gets here')
 const GRAPHQL_PORT = process.env.port;
 const WS_PORT = port;
 
