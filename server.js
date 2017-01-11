@@ -10,7 +10,7 @@ import { subscriptionManager } from './data/subscriptions';
 import schema from './data/schema';
 
 console.log('at least it gets here');
-const GRAPHQL_PORT = process.env.port;
+const GRAPHQL_PORT = process.env.port || 80;
 const WS_PORT = GRAPHQL_PORT;
 
 const graphQLServer = express().use('*', cors());
