@@ -35,7 +35,12 @@ class UASession {
     var options = {
       applicationName: 'uaQL',
       certificateFile : "./certificates/client_selfsigned_cert_2048.pem",
-      privateKeyFile: "./certificates/client_key_2048.pem"
+      privateKeyFile: "./certificates/client_key_2048.pem",
+      connectionStrategy: {
+        maxRetry: 3,
+        initialDelay: 1000,
+        maxDelay: 10000},
+      keepSessionAlive: true
     };
     // logAllEmitterEvents(
     var client = new opcua.OPCUAClient(options);
