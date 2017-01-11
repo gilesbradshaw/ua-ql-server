@@ -11,7 +11,7 @@ import schema from './data/schema';
 
 console.log('at least it gets here' + process.env.PORT);
 const GRAPHQL_PORT = process.env.PORT || 8080;
-const WS_PORT = GRAPHQL_PORT;
+const WS_PORT = GRAPHQL_PORT + 1;
 
 const graphQLServer = express().use('*', cors());
 
@@ -46,9 +46,9 @@ const websocketServer = createServer((request, response) => {
   response.end();
 });
 
-websocketServer.listen(WS_PORT, () => console.log( // eslint-disable-line no-console
-  `Websocket Server is now running on http://localhost:${WS_PORT}`
-));
+//websocketServer.listen(WS_PORT, () => console.log( // eslint-disable-line no-console
+//  `Websocket Server is now running on http://localhost:${WS_PORT}`
+//));
 
 // eslint-disable-next-line
 new SubscriptionServer(
