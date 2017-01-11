@@ -11,7 +11,7 @@ import schema from './data/schema';
 
 console.log('at least it gets here' + process.env.PORT);
 const GRAPHQL_PORT = process.env.PORT || 8080;
-const WS_PORT = GRAPHQL_PORT + 1;
+const WS_PORT = GRAPHQL_PORT;
 
 const graphQLServer = express().use('*', cors());
 
@@ -21,10 +21,7 @@ graphQLServer.use('/', (request, res) => {
   res.end();
 });
 
-graphQLServer.listen(GRAPHQL_PORT, () => console.log(
-  `GraphQL Server is now running on http://localhost:${GRAPHQL_PORT}/graphql`
-));
-/*
+
 graphQLServer.use('/graphql', bodyParser.json(), graphqlExpress({
   schema,
   context: {},
@@ -59,4 +56,4 @@ new SubscriptionServer(
   websocketServer
 );
 
-*/
+
