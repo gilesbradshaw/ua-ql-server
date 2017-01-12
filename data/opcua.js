@@ -158,6 +158,56 @@ class UASession {
   }
 }
 
+const options = {
+  applicationName: 'uaQL',
+  certificateFile: './certificates/client_selfsigned_cert_2048.pem',
+  privateKeyFile: './certificates/client_key_2048.pem',
+  connectionStrategy: {
+    maxRetry: 0,
+    initialDelay: 1000,
+    maxDelay: 10000,
+  },
+  keepSessionAlive: true,
+};
+    // logAllEmitterEvents(
+const client = new opcua.OPCUAClient(options);
+const connects = Rx.Observable.bindCallback(client.connect.bind(client));
+
+
+
+const c = () => connects(endpointUrl).switchMap((err) => {
+  if (err) {
+    console.log(err);
+    return c();
+  }
+  return Rx.Observable.of(client);
+});
+
+c()
+  .switchMap(cl => Rx.Observable.bindNodeCallback(cl.createSession.bind(client))())
+  .switchMap(session => Rx.Observable.create(obs => {
+    obs.next(session);
+    session.once('close', () => obs.error('session closed....'));
+    client.once('timed_out_request', (data) => {
+        console.log('timedout request', JSON.stringify(data));
+        obs.error('session closed....');
+    });
+    return () => {
+      console.log('unsubscribing look giles!');
+    };
+  }))
+  //.takeUntil(Rx.Observable.timer(5000))
+  //.concat(Rx.Observable.throw('oh my God!!!'))
+  .takeUntil(Rx.Observable.bindCallback(client.once.bind(client))('close'))
+  .subscribe(
+    session => console.log('connected!', session),
+    err => console.log('error received:::', err),
+    () => console.log('complete')
+  );
+
+
+
+
 
 const connector = new UASession();
 const nextSession = connector.nextSession;
