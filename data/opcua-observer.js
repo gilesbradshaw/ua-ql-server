@@ -32,6 +32,7 @@ const opcuaObserver = ({ nodeId, attributeId = opcua.AttributeIds.Value }) =>
         err => err && console.log('monitoring...', err)
       );
       m.on('changed', (value) => {
+        console.log('c', { id: nodeId, value });
         observer.next({ id: nodeId, value });
       });
       return () => m.terminate();

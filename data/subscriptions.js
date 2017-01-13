@@ -25,7 +25,8 @@ class MyPubSub extends PubSub {
     let observer;
     if (trigger === 'value') {
       attributeId = opcua.AttributeIds.Value;
-      observer = opcObserver;
+      //observer = opcObserver;
+      observer = opcPoller;
     }
     if (trigger === 'executable') {
       attributeId = opcua.AttributeIds.Executable;
