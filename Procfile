@@ -1,2 +1,2 @@
-web: npm run start-subscription
-#web: npm start
+#web: npm run start-subscription
+web: npm start
