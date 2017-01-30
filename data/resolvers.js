@@ -247,10 +247,16 @@ const resolveFunctions = {
       return null;
     },
   },
-  DataValueUnion: {  
+  DataValueUnion: {
     __resolveType(obj, context, info) {
-      const { $dataType: { key: dKey }, $arrayType: { key: aKey }} = obj
-        
+      const {
+        dataType: {
+          key: dKey,
+        },
+        arrayType: {
+          key: aKey,
+        },
+      } = obj;
       const getType = _d => {
         switch (dKey) {
           case 'Int32':
@@ -336,8 +342,8 @@ const resolveFunctions = {
         .map(v => { 
           return ({
           ...v,
-          dataType: v.value && v.value.$dataType.key,
-          arrayType: v.value && v.value.$arrayType.key,
+          dataType: v.value && v.value.dataType.key,
+          arrayType: v.value && v.value.arrayType.key,
         })}
         ).toPromise();
     },
